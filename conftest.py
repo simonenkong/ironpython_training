@@ -34,8 +34,26 @@ def app(request):
     request.addfinalizer(fin)
     return fixture
 
+
 def pytest_addoption(parser):
     parser.addoption("--target", action="store", default="target.json")
 
 
+def pytest_generate_tests(metafunc):
+    for fixture in metafunc.fixturenames:
+        if fixture.startswith("excel_"):
+            testdata = load_from_excel(fixture[6:])
+            metafunc.parametrize(fixture, testdata, ids=[str(x) for x in testdata])
+
+
+def load_from_excel(file):
+    excel = Excel.ApplicationClass()
+    excel.Visible = True
+    workbook = excel.Workbooks.Open(os.path.join(os.path.dirname(os.path.abspath(__file__)), "data/%s.xlsx" % file))
+    sheet = workbook.ActiveSheet
+    testdata = []
+    for item in sheet.UsedRange:
+        testdata.append(Group(str(item.Value2)))
+    excel.Quit()
+    return testdata
 
